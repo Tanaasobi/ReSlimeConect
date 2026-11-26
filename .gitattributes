@@ -1,0 +1,26 @@
+# 改行コードを LF に統一する（各 PC の core.autocrlf 設定に左右されないようにする）
+* text=auto eol=lf
+
+# バイナリファイルは改行変換・差分表示の対象外にする
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.psd binary
+*.tga binary
+*.tif binary
+*.tiff binary
+*.exr binary
+*.hdr binary
+*.ttf binary
+*.otf binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.mp4 binary
+*.fbx binary
+*.blend binary
+*.dll binary
+*.so binary
+*.a binary
+*.unitypackage binary
