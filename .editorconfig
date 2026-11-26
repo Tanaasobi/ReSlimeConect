@@ -1,0 +1,163 @@
+﻿root = true
+
+# 参考: https://qiita.com/isshi777/items/4f689e9a54217283fc55
+
+############################################
+# 全ファイル共通の基本設定
+############################################
+[*]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# YAML系(Unityのシーン/プレハブ/meta)はUnity任せにする
+# 自動整形で差分が荒れるのを防ぐ
+[*.{unity,prefab,asset,meta,mat,anim,controller}]
+indent_style = unset
+indent_size = unset
+trim_trailing_whitespace = unset
+insert_final_newline = unset
+
+############################################
+# C# 共通
+############################################
+[*.cs]
+# C#はBOM付きUTF-8(VS標準・日本語コメント文字化け防止)
+charset = utf-8-bom
+
+# 外部プラグイン/ライブラリにはルールを適応しない
+dotnet_analyzer_diagnostic.severity = silent
+
+############################################
+# 自作コードにのみルールを適応する
+# ※フォルダ構成を変えたらこのパスも合わせること
+############################################
+[Assets/_Project/Scripts/**/*.cs]
+dotnet_analyzer_diagnostic.severity = default
+
+# '{' は常に改行して配置
+csharp_new_line_before_open_brace = all
+
+# インデント
+csharp_indent_block_contents = true
+csharp_indent_case_contents = true
+csharp_indent_case_contents_when_block = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = flush_left
+
+# スペース
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_after_cast = false
+csharp_space_around_binary_operators = before_and_after
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+csharp_space_between_method_call_empty_parameter_list_parentheses = false
+
+# アクセス修飾子を必須にする(interface内は除外)
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+dotnet_diagnostic.IDE0040.severity = error
+
+############################################
+# 命名規則
+############################################
+# スタイル定義
+dotnet_naming_style.pascal.capitalization = pascal_case
+dotnet_naming_style.camel.capitalization = camel_case
+
+# インターフェース: I + PascalCase (例: IDamageable)
+dotnet_naming_style.interfaceI.required_prefix = I
+dotnet_naming_style.interfaceI.capitalization = pascal_case
+
+# 抽象クラス: A + PascalCase (例: AEnemyBase)
+dotnet_naming_style.abstractA.required_prefix = A
+dotnet_naming_style.abstractA.capitalization = pascal_case
+
+# 列挙型: E + PascalCase (例: EPlayerState)
+dotnet_naming_style.enumE.required_prefix = E
+dotnet_naming_style.enumE.capitalization = pascal_case
+
+# フィールド: m_ + PascalCase (例: m_Health)
+dotnet_naming_style.m_field.required_prefix = m_
+dotnet_naming_style.m_field.capitalization = pascal_case
+
+# シンボルセット
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_symbols.abstract_classes.applicable_kinds = class
+dotnet_naming_symbols.abstract_classes.required_modifiers = abstract
+dotnet_naming_symbols.enums.applicable_kinds = enum
+dotnet_naming_symbols.enum_members.applicable_kinds = enum_member
+dotnet_naming_symbols.classes.applicable_kinds = class
+dotnet_naming_symbols.methods.applicable_kinds = method
+dotnet_naming_symbols.properties.applicable_kinds = property
+dotnet_naming_symbols.parameters.applicable_kinds = parameter
+dotnet_naming_symbols.fields.applicable_kinds = field
+
+# const / static readonly フィールド (m_ルールより先に定義して除外する)
+dotnet_naming_symbols.const_fields.applicable_kinds = field
+dotnet_naming_symbols.const_fields.required_modifiers = const
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.static_readonly_fields.required_modifiers = static, readonly
+
+############################################
+# ルール適用 (上から先勝ちなので順序に注意)
+############################################
+
+# const: PascalCase (例: MaxHealth)
+dotnet_naming_rule.const_fields_pascal.symbols = const_fields
+dotnet_naming_rule.const_fields_pascal.style = pascal
+dotnet_naming_rule.const_fields_pascal.severity = error
+
+# static readonly: PascalCase
+dotnet_naming_rule.static_readonly_pascal.symbols = static_readonly_fields
+dotnet_naming_rule.static_readonly_pascal.style = pascal
+dotnet_naming_rule.static_readonly_pascal.severity = error
+
+# インターフェース
+dotnet_naming_rule.interfaces_must_start_with_I.symbols = interfaces
+dotnet_naming_rule.interfaces_must_start_with_I.style = interfaceI
+dotnet_naming_rule.interfaces_must_start_with_I.severity = error
+
+# 抽象クラス
+dotnet_naming_rule.abstract_classes_must_start_with_A.symbols = abstract_classes
+dotnet_naming_rule.abstract_classes_must_start_with_A.style = abstractA
+dotnet_naming_rule.abstract_classes_must_start_with_A.severity = error
+
+# 列挙型
+dotnet_naming_rule.enums_must_start_with_E.symbols = enums
+dotnet_naming_rule.enums_must_start_with_E.style = enumE
+dotnet_naming_rule.enums_must_start_with_E.severity = error
+
+# 列挙メンバー: PascalCase
+dotnet_naming_rule.enum_members_must_be_pascal.symbols = enum_members
+dotnet_naming_rule.enum_members_must_be_pascal.style = pascal
+dotnet_naming_rule.enum_members_must_be_pascal.severity = error
+
+# クラス
+dotnet_naming_rule.classes_must_be_pascal.symbols = classes
+dotnet_naming_rule.classes_must_be_pascal.style = pascal
+dotnet_naming_rule.classes_must_be_pascal.severity = error
+
+# フィールド: m_ + PascalCase (const/static readonlyは上のルールが先に適用される)
+dotnet_naming_rule.fields_must_m_field.symbols = fields
+dotnet_naming_rule.fields_must_m_field.style = m_field
+dotnet_naming_rule.fields_must_m_field.severity = error
+
+# メソッド
+dotnet_naming_rule.methods_must_be_pascal.symbols = methods
+dotnet_naming_rule.methods_must_be_pascal.style = pascal
+dotnet_naming_rule.methods_must_be_pascal.severity = error
+
+# プロパティ
+dotnet_naming_rule.properties_must_be_pascal.symbols = properties
+dotnet_naming_rule.properties_must_be_pascal.style = pascal
+dotnet_naming_rule.properties_must_be_pascal.severity = error
+
+# 引数: camelCase
+dotnet_naming_rule.parameters_must_be_camel.symbols = parameters
+dotnet_naming_rule.parameters_must_be_camel.style = camel
+dotnet_naming_rule.parameters_must_be_camel.severity = error
