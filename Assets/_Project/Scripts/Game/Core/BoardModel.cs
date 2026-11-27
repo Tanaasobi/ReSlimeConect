@@ -114,23 +114,32 @@ namespace RESlimeConect.Game
 				throw new InvalidOperationException($"マス {index} には置けません");
 			}
 
-			EMark placedMark = GameRuleUtility.GetMark(player);
 			bool triggeredPlayer1 = TryTriggerTrap(EPlayerId.Player1, index);
 			bool triggeredPlayer2 = TryTriggerTrap(EPlayerId.Player2, index);
+			PlaceResult result = PlaceResult.Create(index, player, triggeredPlayer1, triggeredPlayer2);
+			m_Cells[index] = result.FinalMark;
+			return result;
+		}
 
-			// トラップ1つにつき1回反転するので、2つ重なっていれば元に戻る
-			EMark finalMark = placedMark;
-			if (triggeredPlayer1)
+		//----------------------------------------------------
+		// 別の端末で判定済みの結果をそのまま反映する（相手のトラップ位置を知らない側で使う）
+		//----------------------------------------------------
+		public void ApplyPlaceResult(PlaceResult result)
+		{
+			if (!IsEmpty(result.Index))
 			{
-				finalMark = GameRuleUtility.FlipMark(finalMark);
-			}
-			if (triggeredPlayer2)
-			{
-				finalMark = GameRuleUtility.FlipMark(finalMark);
+				throw new InvalidOperationException($"マス {result.Index} には置けません");
 			}
 
-			m_Cells[index] = finalMark;
-			return new PlaceResult(index, player, placedMark, finalMark, triggeredPlayer1, triggeredPlayer2);
+			m_Cells[result.Index] = result.FinalMark;
+			if (result.TriggeredPlayer1Trap)
+			{
+				m_TrapTriggered[(int)EPlayerId.Player1] = true;
+			}
+			if (result.TriggeredPlayer2Trap)
+			{
+				m_TrapTriggered[(int)EPlayerId.Player2] = true;
+			}
 		}
 
 		//----------------------------------------------------

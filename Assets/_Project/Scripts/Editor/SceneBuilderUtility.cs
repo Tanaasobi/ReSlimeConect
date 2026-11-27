@@ -21,6 +21,10 @@ namespace RESlimeConect.EditorTools
 		public const float CameraSize = 3.6f;
 		public static readonly Vector2 ReferenceResolution = new Vector2(1280f, 720f);
 
+		// 文字ボタンと入力欄の色（土の枠に合わせた茶色系）
+		private static readonly Color TextButtonColor = new Color(0.55f, 0.33f, 0.15f, 1f);
+		private static readonly Color InputFieldColor = new Color(0.96f, 0.91f, 0.8f, 1f);
+
 		//----------------------------------------------------
 		// 1枚画像のスプライトを読み込む
 		//----------------------------------------------------
@@ -150,6 +154,60 @@ namespace RESlimeConect.EditorTools
 			// クリック後に「選択中」の見た目が残らないよう、ナビゲーションは使わない
 			button.navigation = new Navigation { mode = Navigation.Mode.None };
 			return button;
+		}
+
+		//----------------------------------------------------
+		// 専用の画像がまだ無いボタン用に、単色の背景に文字を載せたボタンを作る
+		//----------------------------------------------------
+		public static Button CreateTextButton(string name, Transform parent, string label, Vector2 position, Vector2 size, int fontSize)
+		{
+			Image image = CreateImage(name, parent, null, position, size);
+			image.color = TextButtonColor;
+			image.raycastTarget = true;
+
+			Text text = CreateText("Label", image.transform, label, fontSize);
+			StretchFull(text.rectTransform);
+			AddOutline(text);
+
+			Button button = image.gameObject.AddComponent<Button>();
+			button.navigation = new Navigation { mode = Navigation.Mode.None };
+			return button;
+		}
+
+		//----------------------------------------------------
+		// 1行の文字入力欄を作る（未入力時は placeholder を薄く表示する）
+		//----------------------------------------------------
+		public static InputField CreateInputField(string name, Transform parent, string placeholder, Vector2 position, Vector2 size, int fontSize)
+		{
+			Image image = CreateImage(name, parent, null, position, size);
+			image.color = InputFieldColor;
+			image.raycastTarget = true;
+
+			Text placeholderText = CreateText("Placeholder", image.transform, placeholder, fontSize);
+			StretchFull(placeholderText.rectTransform);
+			placeholderText.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+			placeholderText.fontStyle = FontStyle.Italic;
+
+			Text inputText = CreateText("Text", image.transform, string.Empty, fontSize);
+			StretchFull(inputText.rectTransform);
+			inputText.color = Color.black;
+			inputText.supportRichText = false;
+
+			InputField inputField = image.gameObject.AddComponent<InputField>();
+			inputField.textComponent = inputText;
+			inputField.placeholder = placeholderText;
+			inputField.navigation = new Navigation { mode = Navigation.Mode.None };
+			return inputField;
+		}
+
+		//----------------------------------------------------
+		// 文字に黒い縁取りを付ける
+		//----------------------------------------------------
+		public static void AddOutline(Text text)
+		{
+			Outline outline = text.gameObject.AddComponent<Outline>();
+			outline.effectColor = new Color(0f, 0f, 0f, 0.8f);
+			outline.effectDistance = new Vector2(2f, -2f);
 		}
 
 		//----------------------------------------------------

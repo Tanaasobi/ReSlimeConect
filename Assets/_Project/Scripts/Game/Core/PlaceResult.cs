@@ -29,5 +29,24 @@ namespace RESlimeConect.Game
 			TriggeredPlayer1Trap = triggeredPlayer1Trap;
 			TriggeredPlayer2Trap = triggeredPlayer2Trap;
 		}
+
+		//----------------------------------------------------
+		// 置いたプレイヤーと踏んだトラップから、最終的なマークを求めて生成する
+		// トラップ1つにつき1回反転するので、2つ重なっていれば元に戻る
+		//----------------------------------------------------
+		public static PlaceResult Create(int index, EPlayerId player, bool triggeredPlayer1Trap, bool triggeredPlayer2Trap)
+		{
+			EMark placedMark = GameRuleUtility.GetMark(player);
+			EMark finalMark = placedMark;
+			if (triggeredPlayer1Trap)
+			{
+				finalMark = GameRuleUtility.FlipMark(finalMark);
+			}
+			if (triggeredPlayer2Trap)
+			{
+				finalMark = GameRuleUtility.FlipMark(finalMark);
+			}
+			return new PlaceResult(index, player, placedMark, finalMark, triggeredPlayer1Trap, triggeredPlayer2Trap);
+		}
 	}
 }

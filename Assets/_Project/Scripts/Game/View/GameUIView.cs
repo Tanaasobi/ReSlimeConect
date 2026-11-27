@@ -31,6 +31,9 @@ namespace RESlimeConect.Game
 		[SerializeField] private Text m_HandoffText;
 		[SerializeField] private Button m_HandoffButton;
 
+		[Header("状況表示（任意。ネットワーク対戦で手番などを表示する）")]
+		[SerializeField] private Text m_StatusText;
+
 		[Header("リザルト")]
 		[SerializeField] private GameObject m_ResultRoot;
 		[SerializeField] private Text m_ResultText;
@@ -56,6 +59,26 @@ namespace RESlimeConect.Game
 			ShowTrapControls(false);
 			SetTimeVisible(false);
 			m_HandoffPanel.SetActive(false);
+			m_ResultRoot.SetActive(false);
+			SetStatus(string.Empty);
+		}
+
+		//----------------------------------------------------
+		// 状況表示の文言を設定する（空文字で消す。状況表示が無いシーンでは何もしない）
+		//----------------------------------------------------
+		public void SetStatus(string message)
+		{
+			if (m_StatusText != null)
+			{
+				m_StatusText.text = message;
+			}
+		}
+
+		//----------------------------------------------------
+		// リザルト表示を閉じる（相手の操作で次の対戦が始まったときなど）
+		//----------------------------------------------------
+		public void HideResult()
+		{
 			m_ResultRoot.SetActive(false);
 		}
 

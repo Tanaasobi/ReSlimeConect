@@ -44,6 +44,7 @@ namespace RESlimeConect.EditorTools
 		private const float CellSpacing = 1.745f;
 		private const float CellColliderSize = 1.54f;
 		private const float RightColumnX = 320f;
+		private static readonly Vector2 StatusTextPosition = new Vector2(BoardPosition.x * 100f, 336f);
 
 		// マス内の各レイヤー（位置・大きさ・描画順）
 		private static readonly Vector3 TrapLocalPosition = new Vector3(0f, 0.1f, 0f);
@@ -84,7 +85,7 @@ namespace RESlimeConect.EditorTools
 
 			Camera camera = CreateCamera();
 			BoardView boardView = CreateBoard(skin, cellPrefab, camera);
-			GameUIView gameUIView = CreateUI();
+			GameUIView gameUIView = CreateUI(false);
 			CreateEventSystem();
 			CreateGameManager(boardView, gameUIView);
 
@@ -228,7 +229,7 @@ namespace RESlimeConect.EditorTools
 		//----------------------------------------------------
 		// マスの Prefab を読み込む（無い、または構成が古い場合は作り直す）
 		//----------------------------------------------------
-		private static GameObject LoadOrCreateCellPrefab()
+		public static GameObject LoadOrCreateCellPrefab()
 		{
 			GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(CellPrefabPath);
 			if (existing != null && IsCurrentCellPrefab(existing))
@@ -316,7 +317,7 @@ namespace RESlimeConect.EditorTools
 		//----------------------------------------------------
 		// 背景・盤面タイル・マスの Prefab インスタンス 9 個を作り BoardView に結線する
 		//----------------------------------------------------
-		private static BoardView CreateBoard(BoardSkin skin, GameObject cellPrefab, Camera camera)
+		public static BoardView CreateBoard(BoardSkin skin, GameObject cellPrefab, Camera camera)
 		{
 			SpriteRenderer background = CreateSprite("Background", null, skin.BackgroundSprite, Vector3.zero, Vector3.one, BackgroundOrder);
 
@@ -360,9 +361,9 @@ namespace RESlimeConect.EditorTools
 		//====================================================
 
 		//----------------------------------------------------
-		// Canvas と各 UI パーツを作り GameUIView に結線する（右列に縦並び）
+		// Canvas と各 UI パーツを作り GameUIView に結線する（右列に縦並び。withStatusText なら盤面の上に状況表示を出す）
 		//----------------------------------------------------
-		private static GameUIView CreateUI()
+		public static GameUIView CreateUI(bool withStatusText)
 		{
 			GameObject canvasObject = CreateCanvas().gameObject;
 			Transform root = canvasObject.transform;
@@ -396,6 +397,15 @@ namespace RESlimeConect.EditorTools
 			Button rematchButton = CreateButton("RematchButton", resultRoot.transform, "Rematch_Idle", "Rematch_Float", "Rematch_Push", new Vector2(RightColumnX, -145f), new Vector2(288f, 96f));
 			Button gameEndButton = CreateButton("GameEndButton", resultRoot.transform, "GameEnd_Idle", "GameEnd_Float", "GameEnd_Push", new Vector2(RightColumnX, -250f), new Vector2(288f, 96f));
 
+			// 状況表示（盤面の上）
+			Text statusText = null;
+			if (withStatusText)
+			{
+				statusText = CreateText("StatusText", root, string.Empty, 26);
+				SetRect(statusText.rectTransform, new Vector2(0.5f, 0.5f), StatusTextPosition, new Vector2(640f, 44f));
+				AddOutline(statusText);
+			}
+
 			// 交代画面（盤面を完全に隠す。最前面に出すため最後に作る）
 			GameObject handoffPanel = CreateUIObject("HandoffPanel", root);
 			StretchFull(handoffPanel.GetComponent<RectTransform>());
@@ -422,6 +432,7 @@ namespace RESlimeConect.EditorTools
 			serialized.FindProperty("m_HandoffPanel").objectReferenceValue = handoffPanel;
 			serialized.FindProperty("m_HandoffText").objectReferenceValue = handoffText;
 			serialized.FindProperty("m_HandoffButton").objectReferenceValue = handoffButton;
+			serialized.FindProperty("m_StatusText").objectReferenceValue = statusText;
 			serialized.FindProperty("m_ResultRoot").objectReferenceValue = resultRoot;
 			serialized.FindProperty("m_ResultText").objectReferenceValue = resultText;
 			serialized.FindProperty("m_ModeSelectButton").objectReferenceValue = modeSelectButton;

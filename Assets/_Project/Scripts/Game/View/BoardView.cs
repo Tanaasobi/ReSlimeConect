@@ -249,8 +249,30 @@ namespace RESlimeConect.Game
 			{
 				if (board.IsTrapActive(owner))
 				{
-					m_Cells[board.GetTrapIndex(owner)].ShowTrap(m_Skin.TrapIdle);
+					RevealTrap(board.GetTrapIndex(owner));
 				}
+			}
+		}
+
+		//----------------------------------------------------
+		// 指定マスのトラップを公開する（NoTrap なら何もしない）
+		//----------------------------------------------------
+		public void RevealTrap(int index)
+		{
+			if (BoardModel.IsValidIndex(index))
+			{
+				m_Cells[index].ShowTrap(m_Skin.TrapIdle);
+			}
+		}
+
+		//----------------------------------------------------
+		// 指定マスのトラップ表示を消す（NoTrap なら何もしない）
+		//----------------------------------------------------
+		public void HideTrap(int index)
+		{
+			if (BoardModel.IsValidIndex(index))
+			{
+				m_Cells[index].HideTrap();
 			}
 		}
 
