@@ -1,6 +1,6 @@
 ﻿//====================================================
 // CellView.cs
-// 1マス分の見た目（マーク・トラップ・ハイライト）と演出を担当する
+// 1マス分の見た目（スライム・トラップ・ビックリマーク・ホバー時のプレビュー）と演出を担当する
 //====================================================
 using System.Threading;
 using UnityEngine;
@@ -11,118 +11,98 @@ namespace RESlimeConect.Game
 	public sealed class CellView : MonoBehaviour
 	{
 		[SerializeField] private int m_Index;
-		[SerializeField] private SpriteRenderer m_MarkRenderer;
-		[SerializeField] private SpriteRenderer m_TrapRenderer;
-		[SerializeField] private SpriteRenderer m_HighlightRenderer;
 
-		private Vector3 m_MarkBaseScale = Vector3.one;
+		[Header("表示レイヤー")]
+		[SerializeField] private SpriteAnimator m_TrapAnimator;
+		[SerializeField] private SpriteAnimator m_SlimeAnimator;
+		[SerializeField] private SpriteAnimator m_ExclamationAnimator;
+		[Tooltip("ホバー時の半透明プレビュー。位置と大きさは対象レイヤーに合わせる")]
+		[SerializeField] private SpriteRenderer m_PreviewRenderer;
 
 		public int Index => m_Index;
-
-		//----------------------------------------------------
-		// マーク表示の基準スケールを記録する
-		//----------------------------------------------------
-		private void Awake()
-		{
-			if (m_MarkRenderer != null)
-			{
-				m_MarkBaseScale = m_MarkRenderer.transform.localScale;
-			}
-		}
 
 		//----------------------------------------------------
 		// 表示をすべて消して初期状態に戻す
 		//----------------------------------------------------
 		public void ResetView()
 		{
-			SetMark(null, Color.white);
-			HideTrap();
-			SetHighlight(false, Color.clear);
+			m_TrapAnimator.Hide();
+			m_SlimeAnimator.Hide();
+			m_ExclamationAnimator.Hide();
+			HidePreview();
 		}
 
 		//----------------------------------------------------
-		// マークの画像と色を設定する（null で非表示）
+		// スライムのループアニメーション（通常・勝利）を再生する
 		//----------------------------------------------------
-		public void SetMark(Sprite sprite, Color color)
+		public void PlaySlime(SpriteAnimationClip clip)
 		{
-			m_MarkRenderer.sprite = sprite;
-			m_MarkRenderer.color = color;
-			m_MarkRenderer.enabled = sprite != null;
-			m_MarkRenderer.transform.localScale = m_MarkBaseScale;
+			m_SlimeAnimator.Play(clip);
 		}
 
 		//----------------------------------------------------
-		// トラップアイコンを指定色で表示する
+		// スライムの1回きりのアニメーション（変化）を再生して終わるまで待つ
 		//----------------------------------------------------
-		public void ShowTrap(Color color)
+		public Awaitable PlaySlimeAsync(SpriteAnimationClip clip, CancellationToken token)
 		{
-			m_TrapRenderer.color = color;
-			m_TrapRenderer.enabled = true;
+			return m_SlimeAnimator.PlayAsync(clip, token);
 		}
 
 		//----------------------------------------------------
-		// トラップアイコンを非表示にする
+		// ビックリマークを再生し、終わったら消す
+		//----------------------------------------------------
+		public async Awaitable PlayExclamationAsync(SpriteAnimationClip clip, CancellationToken token)
+		{
+			await m_ExclamationAnimator.PlayAsync(clip, token);
+			m_ExclamationAnimator.Hide();
+		}
+
+		//----------------------------------------------------
+		// トラップのループアニメーションを表示する
+		//----------------------------------------------------
+		public void ShowTrap(SpriteAnimationClip clip)
+		{
+			m_TrapAnimator.Play(clip);
+		}
+
+		//----------------------------------------------------
+		// トラップの1回きりのアニメーションを再生し、終わったら消す
+		//----------------------------------------------------
+		public async Awaitable PlayTrapOnceAsync(SpriteAnimationClip clip, CancellationToken token)
+		{
+			await m_TrapAnimator.PlayAsync(clip, token);
+			m_TrapAnimator.Hide();
+		}
+
+		//----------------------------------------------------
+		// トラップ表示を消す
 		//----------------------------------------------------
 		public void HideTrap()
 		{
-			m_TrapRenderer.enabled = false;
+			m_TrapAnimator.Hide();
 		}
 
 		//----------------------------------------------------
-		// ハイライトの表示状態と色を設定する
+		// ホバー時の半透明プレビューを、スライムかトラップの位置と大きさで表示する
 		//----------------------------------------------------
-		public void SetHighlight(bool visible, Color color)
+		public void ShowPreview(Sprite sprite, Color color, bool isTrapLayer)
 		{
-			m_HighlightRenderer.color = color;
-			m_HighlightRenderer.enabled = visible;
+			Transform target = isTrapLayer ? m_TrapAnimator.transform : m_SlimeAnimator.transform;
+			Transform preview = m_PreviewRenderer.transform;
+			preview.localPosition = target.localPosition;
+			preview.localScale = target.localScale;
+
+			m_PreviewRenderer.sprite = sprite;
+			m_PreviewRenderer.color = color;
+			m_PreviewRenderer.enabled = sprite != null;
 		}
 
 		//----------------------------------------------------
-		// マークを横につぶして別のマークに差し替える反転演出を再生する
+		// ホバー時のプレビューを消す
 		//----------------------------------------------------
-		public async Awaitable PlayFlipAsync(Sprite nextSprite, Color nextColor, float duration, CancellationToken token)
+		public void HidePreview()
 		{
-			float half = duration * 0.5f;
-			await ScaleMarkXAsync(1f, 0f, half, token);
-			m_MarkRenderer.sprite = nextSprite;
-			m_MarkRenderer.color = nextColor;
-			await ScaleMarkXAsync(0f, 1f, half, token);
-		}
-
-		//----------------------------------------------------
-		// マークを置いたときに少し弾む演出を再生する
-		//----------------------------------------------------
-		public async Awaitable PlayPopAsync(float duration, CancellationToken token)
-		{
-			Transform target = m_MarkRenderer.transform;
-			float time = 0f;
-			while (time < duration)
-			{
-				time += Time.deltaTime;
-				float rate = Mathf.Clamp01(time / duration);
-				float scale = 1f + Mathf.Sin(rate * Mathf.PI) * 0.2f;
-				target.localScale = m_MarkBaseScale * scale;
-				await Awaitable.NextFrameAsync(token);
-			}
-			target.localScale = m_MarkBaseScale;
-		}
-
-		//----------------------------------------------------
-		// マークの横幅倍率を時間をかけて変化させる
-		//----------------------------------------------------
-		private async Awaitable ScaleMarkXAsync(float from, float to, float duration, CancellationToken token)
-		{
-			Transform target = m_MarkRenderer.transform;
-			float time = 0f;
-			while (time < duration)
-			{
-				time += Time.deltaTime;
-				float rate = Mathf.Clamp01(time / duration);
-				float x = Mathf.Lerp(from, to, rate);
-				target.localScale = new Vector3(m_MarkBaseScale.x * x, m_MarkBaseScale.y, m_MarkBaseScale.z);
-				await Awaitable.NextFrameAsync(token);
-			}
-			target.localScale = new Vector3(m_MarkBaseScale.x * to, m_MarkBaseScale.y, m_MarkBaseScale.z);
+			m_PreviewRenderer.enabled = false;
 		}
 	}
 }

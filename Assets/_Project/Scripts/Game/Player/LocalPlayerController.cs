@@ -33,7 +33,7 @@ namespace RESlimeConect.Game
 			Action<int> onCellClicked = index =>
 			{
 				selected = index;
-				m_BoardView.ShowTrapPreview(index, self);
+				m_BoardView.ShowTrapPreview(index);
 				m_GameUIView.SetTrapConfirmInteractable(true);
 			};
 			Action onConfirm = () =>
@@ -65,7 +65,7 @@ namespace RESlimeConect.Game
 				m_GameUIView.TrapConfirmClicked -= onConfirm;
 				m_GameUIView.TrapSkipClicked -= onSkip;
 
-				// キャンセル時はシーン破棄中で表示物が消えている場合があるため、見た目の後片付けはしない
+				// キャンセル時（時間切れ・シーン破棄）は呼び出し側が後片付けするので、見た目には触らない
 				if (!token.IsCancellationRequested)
 				{
 					m_GameUIView.ShowTrapControls(false);
@@ -97,7 +97,7 @@ namespace RESlimeConect.Game
 			{
 				m_BoardView.CellClicked -= onCellClicked;
 
-				// キャンセル時はシーン破棄中で表示物が消えている場合があるため、見た目の後片付けはしない
+				// キャンセル時（時間切れ・シーン破棄）は呼び出し側が後片付けするので、見た目には触らない
 				if (!token.IsCancellationRequested)
 				{
 					m_BoardView.SetInputEnabled(false);

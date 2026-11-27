@@ -1,6 +1,6 @@
 ﻿//====================================================
 // GameUIView.cs
-// フェーズ表示・トラップ操作ボタン・交代画面・リザルト画面の UI を担当する
+// 手番プレイヤー枠・残り時間・トラップ操作ボタン・交代画面・リザルトの UI を担当する
 //====================================================
 using System;
 using System.Threading;
@@ -12,14 +12,19 @@ namespace RESlimeConect.Game
 {
 	public sealed class GameUIView : MonoBehaviour
 	{
-		[Header("常時表示")]
-		[SerializeField] private Text m_PhaseText;
-		[SerializeField] private Text m_MessageText;
+		[Header("プレイヤー枠")]
+		[SerializeField] private GameObject m_PlayerFrameRoot;
+		[SerializeField] private SpriteAnimator m_PlayerSlimeAnimator;
+
+		[Header("残り時間")]
+		[SerializeField] private GameObject m_TimeFrameRoot;
+		[SerializeField] private SpriteNumberText m_TimeText;
 
 		[Header("トラップ設置")]
 		[SerializeField] private GameObject m_TrapControlRoot;
 		[SerializeField] private Button m_TrapConfirmButton;
 		[SerializeField] private Button m_TrapSkipButton;
+		[SerializeField] private Color m_DisabledButtonColor = new Color(1f, 1f, 1f, 0.5f);
 
 		[Header("交代画面")]
 		[SerializeField] private GameObject m_HandoffPanel;
@@ -27,39 +32,64 @@ namespace RESlimeConect.Game
 		[SerializeField] private Button m_HandoffButton;
 
 		[Header("リザルト")]
-		[SerializeField] private GameObject m_ResultPanel;
+		[SerializeField] private GameObject m_ResultRoot;
 		[SerializeField] private Text m_ResultText;
-		[SerializeField] private Button m_RetryButton;
+		[SerializeField] private Button m_ModeSelectButton;
+		[SerializeField] private Button m_RematchButton;
+		[SerializeField] private Button m_GameEndButton;
 
 		public event Action TrapConfirmClicked;
 		public event Action TrapSkipClicked;
+		public event Action ModeSelectClicked;
+		public event Action GameEndClicked;
 
 		//----------------------------------------------------
-		// ボタンのイベントを登録し、パネルを非表示にする
+		// ボタンのイベントを登録し、切り替え式の UI を非表示にする
 		//----------------------------------------------------
 		private void Awake()
 		{
 			m_TrapConfirmButton.onClick.AddListener(() => TrapConfirmClicked?.Invoke());
 			m_TrapSkipButton.onClick.AddListener(() => TrapSkipClicked?.Invoke());
+			m_ModeSelectButton.onClick.AddListener(() => ModeSelectClicked?.Invoke());
+			m_GameEndButton.onClick.AddListener(() => GameEndClicked?.Invoke());
+
 			ShowTrapControls(false);
+			SetTimeVisible(false);
 			m_HandoffPanel.SetActive(false);
-			m_ResultPanel.SetActive(false);
+			m_ResultRoot.SetActive(false);
 		}
 
 		//----------------------------------------------------
-		// 画面上部のフェーズ名を設定する
+		// プレイヤー枠に表示するスライムのアニメーションを設定する（null で空にする）
 		//----------------------------------------------------
-		public void SetPhase(string text)
+		public void SetPlayerSlime(SpriteAnimationClip clip)
 		{
-			m_PhaseText.text = text;
+			m_PlayerFrameRoot.SetActive(true);
+			if (clip == null)
+			{
+				m_PlayerSlimeAnimator.Hide();
+				return;
+			}
+			if (m_PlayerSlimeAnimator.CurrentClip != clip)
+			{
+				m_PlayerSlimeAnimator.Play(clip);
+			}
 		}
 
 		//----------------------------------------------------
-		// フェーズ名の下に出す案内メッセージを設定する
+		// 残り時間枠の表示を切り替える
 		//----------------------------------------------------
-		public void SetMessage(string text)
+		public void SetTimeVisible(bool visible)
 		{
-			m_MessageText.text = text;
+			m_TimeFrameRoot.SetActive(visible);
+		}
+
+		//----------------------------------------------------
+		// 残り時間（秒）を表示する
+		//----------------------------------------------------
+		public void SetTime(int seconds)
+		{
+			m_TimeText.SetText($"{seconds}s");
 		}
 
 		//----------------------------------------------------
@@ -71,11 +101,12 @@ namespace RESlimeConect.Game
 		}
 
 		//----------------------------------------------------
-		// トラップ決定ボタンを押せるかどうかを設定する
+		// トラップ決定ボタンを押せるかどうかを設定する（押せない間は半透明）
 		//----------------------------------------------------
 		public void SetTrapConfirmInteractable(bool interactable)
 		{
 			m_TrapConfirmButton.interactable = interactable;
+			m_TrapConfirmButton.image.color = interactable ? Color.white : m_DisabledButtonColor;
 		}
 
 		//----------------------------------------------------
@@ -92,16 +123,16 @@ namespace RESlimeConect.Game
 		}
 
 		//----------------------------------------------------
-		// リザルトを表示し、もう一度ボタンが押されるまで待つ
+		// リザルトを表示し、再戦ボタンが押されるまで待つ
 		//----------------------------------------------------
 		public async Awaitable ShowResultAsync(string message, CancellationToken token)
 		{
 			m_ResultText.text = message;
-			m_ResultPanel.SetActive(true);
+			m_ResultRoot.SetActive(true);
 
 			// キャンセル時はシーン破棄中で UI が消えている場合があるため、後片付けは正常終了時のみ行う
-			await WaitForClickAsync(m_RetryButton, token);
-			m_ResultPanel.SetActive(false);
+			await WaitForClickAsync(m_RematchButton, token);
+			m_ResultRoot.SetActive(false);
 		}
 
 		//----------------------------------------------------

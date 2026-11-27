@@ -16,26 +16,16 @@ namespace RESlimeConect.Game
 		[SerializeField] private Camera m_Camera;
 		[SerializeField] private CellView[] m_Cells = new CellView[BoardModel.CellCount];
 
-		[Header("マーク")]
-		[SerializeField] private Sprite m_CircleSprite;
-		[SerializeField] private Sprite m_CrossSprite;
-		[SerializeField] private Color m_CircleColor = new Color(0.25f, 0.6f, 1f);
-		[SerializeField] private Color m_CrossColor = new Color(1f, 0.35f, 0.35f);
-
-		[Header("トラップ")]
-		[SerializeField] private Color m_Player1TrapColor = new Color(0.25f, 0.6f, 1f, 0.8f);
-		[SerializeField] private Color m_Player2TrapColor = new Color(1f, 0.35f, 0.35f, 0.8f);
-		[SerializeField] private Color m_BothTrapColor = new Color(0.8f, 0.4f, 1f, 0.9f);
-
-		[Header("ハイライト")]
-		[SerializeField] private Color m_HoverColor = new Color(1f, 1f, 1f, 0.15f);
-		[SerializeField] private Color m_WinColor = new Color(1f, 0.85f, 0.2f, 0.45f);
+		[Header("見た目")]
+		[SerializeField] private BoardSkin m_Skin;
+		[SerializeField] private SpriteRenderer m_BoardRenderer;
+		[SerializeField] private SpriteRenderer m_BackgroundRenderer;
 
 		[Header("演出")]
-		[SerializeField] private float m_PopDuration = 0.2f;
+		[Tooltip("駒を置いてからトラップが発動するまでの間")]
 		[SerializeField] private float m_TrapRevealDelay = 0.4f;
-		[SerializeField] private float m_FlipDuration = 0.4f;
-		[SerializeField] private float m_AfterFlipDelay = 0.4f;
+		[Tooltip("変化し終わってから次の手番に移るまでの間")]
+		[SerializeField] private float m_AfterChangeDelay = 0.3f;
 
 		private const int NoCell = -1;
 
@@ -43,11 +33,15 @@ namespace RESlimeConect.Game
 		private Func<int, bool> m_CanSelect;
 		private int m_HoverIndex = NoCell;
 		private int m_TrapPreviewIndex = NoCell;
+		private Sprite m_HoverPreviewSprite;
+		private bool m_IsHoverPreviewTrap;
+
+		public BoardSkin Skin => m_Skin;
 
 		public event Action<int> CellClicked;
 
 		//----------------------------------------------------
-		// カメラ未設定ならメインカメラを使う
+		// カメラ未設定ならメインカメラを使い、スキンを反映する
 		//----------------------------------------------------
 		private void Awake()
 		{
@@ -55,6 +49,7 @@ namespace RESlimeConect.Game
 			{
 				m_Camera = Camera.main;
 			}
+			ApplySkin();
 		}
 
 		//----------------------------------------------------
@@ -83,6 +78,48 @@ namespace RESlimeConect.Game
 		}
 
 		//----------------------------------------------------
+		// スキンを差し替えて見た目に反映する
+		//----------------------------------------------------
+		public void SetSkin(BoardSkin skin)
+		{
+			m_Skin = skin;
+			ApplySkin();
+		}
+
+		//----------------------------------------------------
+		// 現在のスキンを盤面と背景に反映する
+		//----------------------------------------------------
+		public void ApplySkin()
+		{
+			if (m_Skin == null)
+			{
+				Debug.LogWarning("[BoardView] スキンが設定されていません", this);
+				return;
+			}
+
+			if (m_BoardRenderer != null)
+			{
+				m_BoardRenderer.sprite = m_Skin.BoardSprite;
+			}
+			if (m_BackgroundRenderer != null)
+			{
+				m_BackgroundRenderer.sprite = m_Skin.BackgroundSprite;
+			}
+		}
+
+		//----------------------------------------------------
+		// エディタ上でスキンの変更をシーンに反映して確認する（Inspector の右クリックメニュー）
+		//----------------------------------------------------
+		[ContextMenu("スキンを適用")]
+		private void ApplySkinFromContextMenu()
+		{
+#if UNITY_EDITOR
+			UnityEditor.Undo.RecordObjects(new UnityEngine.Object[] { m_BoardRenderer, m_BackgroundRenderer }, "スキンを適用");
+#endif
+			ApplySkin();
+		}
+
+		//----------------------------------------------------
 		// クリック入力の有効・無効と選択可能なマスの条件を設定する
 		//----------------------------------------------------
 		public void SetInputEnabled(bool enabled, Func<int, bool> canSelect = null)
@@ -93,6 +130,24 @@ namespace RESlimeConect.Game
 			{
 				SetHover(NoCell);
 			}
+		}
+
+		//----------------------------------------------------
+		// ホバー時のプレビューをトラップにする（トラップフェーズ用）
+		//----------------------------------------------------
+		public void SetHoverPreviewTrap()
+		{
+			m_HoverPreviewSprite = m_Skin.TrapIdle.FirstFrame;
+			m_IsHoverPreviewTrap = true;
+		}
+
+		//----------------------------------------------------
+		// ホバー時のプレビューを指定マークのスライムにする（対戦フェーズ用）
+		//----------------------------------------------------
+		public void SetHoverPreviewSlime(EMark mark)
+		{
+			m_HoverPreviewSprite = m_Skin.GetSlime(mark).Idle.FirstFrame;
+			m_IsHoverPreviewTrap = false;
 		}
 
 		//----------------------------------------------------
@@ -109,17 +164,18 @@ namespace RESlimeConect.Game
 		}
 
 		//----------------------------------------------------
-		// トラップ設置フェーズで選択中のマスにトラップを仮表示する
+		// トラップフェーズで選択中のマスにトラップを表示する
 		//----------------------------------------------------
-		public void ShowTrapPreview(int index, EPlayerId owner)
+		public void ShowTrapPreview(int index)
 		{
 			HideTrapPreview();
+			SetHover(NoCell);
 			m_TrapPreviewIndex = index;
-			m_Cells[index].ShowTrap(GetTrapColor(owner == EPlayerId.Player1, owner == EPlayerId.Player2));
+			m_Cells[index].ShowTrap(m_Skin.TrapIdle);
 		}
 
 		//----------------------------------------------------
-		// トラップの仮表示を消す
+		// 選択中のトラップ表示を消す
 		//----------------------------------------------------
 		public void HideTrapPreview()
 		{
@@ -131,13 +187,22 @@ namespace RESlimeConect.Game
 		}
 
 		//----------------------------------------------------
-		// マークを置く演出を再生し、トラップがあれば公開して反転させてから消す
+		// トラップ設置を決定したときの演出を再生する
+		//----------------------------------------------------
+		public Awaitable PlayTrapPlaceAsync(int index, CancellationToken token)
+		{
+			return m_Cells[index].PlayTrapOnceAsync(m_Skin.TrapPlace, token);
+		}
+
+		//----------------------------------------------------
+		// スライムを置く演出を再生し、トラップを踏んでいればビックリマークの後に変化させる
 		//----------------------------------------------------
 		public async Awaitable PlayPlaceAsync(PlaceResult result, CancellationToken token)
 		{
 			CellView cell = m_Cells[result.Index];
-			cell.SetMark(GetSprite(result.PlacedMark), GetColor(result.PlacedMark));
-			await cell.PlayPopAsync(m_PopDuration, token);
+			SlimeAnimationSet placed = m_Skin.GetSlime(result.PlacedMark);
+			await cell.PlaySlimeAsync(placed.Place, token);
+			cell.PlaySlime(placed.Idle);
 
 			if (!result.IsTrapTriggered)
 			{
@@ -145,28 +210,29 @@ namespace RESlimeConect.Game
 			}
 
 			await Awaitable.WaitForSecondsAsync(m_TrapRevealDelay, token);
-			cell.ShowTrap(GetTrapColor(result.TriggeredPlayer1Trap, result.TriggeredPlayer2Trap));
+			await cell.PlayExclamationAsync(m_Skin.Exclamation, token);
 
-			// 踏んだトラップの数だけ反転させる（2つなら元に戻る）
+			// 踏んだトラップの数だけ変化させる（2つなら元に戻る）
 			EMark mark = result.PlacedMark;
 			for (int i = 0; i < result.TrapCount; i++)
 			{
+				await cell.PlaySlimeAsync(m_Skin.GetSlime(mark).Change, token);
 				mark = GameRuleUtility.FlipMark(mark);
-				await cell.PlayFlipAsync(GetSprite(mark), GetColor(mark), m_FlipDuration, token);
+				cell.PlaySlime(m_Skin.GetSlime(mark).Idle);
 			}
 
-			await Awaitable.WaitForSecondsAsync(m_AfterFlipDelay, token);
-			cell.HideTrap();
+			await Awaitable.WaitForSecondsAsync(m_AfterChangeDelay, token);
 		}
 
 		//----------------------------------------------------
-		// 揃ったラインのマスをハイライトする
+		// 揃ったラインのスライムに勝利アニメーションを再生させる
 		//----------------------------------------------------
-		public void ShowWinLine(int[] line)
+		public void PlayWinLine(int[] line, EMark winner)
 		{
+			SpriteAnimationClip clip = m_Skin.GetSlime(winner).Win;
 			foreach (int index in line)
 			{
-				m_Cells[index].SetHighlight(true, m_WinColor);
+				m_Cells[index].PlaySlime(clip);
 			}
 		}
 
@@ -175,16 +241,12 @@ namespace RESlimeConect.Game
 		//----------------------------------------------------
 		public void RevealRemainingTraps(BoardModel board)
 		{
-			int trap1 = board.IsTrapActive(EPlayerId.Player1) ? board.GetTrapIndex(EPlayerId.Player1) : BoardModel.NoTrap;
-			int trap2 = board.IsTrapActive(EPlayerId.Player2) ? board.GetTrapIndex(EPlayerId.Player2) : BoardModel.NoTrap;
-
-			if (trap1 != BoardModel.NoTrap)
+			foreach (EPlayerId owner in new[] { EPlayerId.Player1, EPlayerId.Player2 })
 			{
-				m_Cells[trap1].ShowTrap(GetTrapColor(true, trap1 == trap2));
-			}
-			if (trap2 != BoardModel.NoTrap && trap2 != trap1)
-			{
-				m_Cells[trap2].ShowTrap(GetTrapColor(false, true));
+				if (board.IsTrapActive(owner))
+				{
+					m_Cells[board.GetTrapIndex(owner)].ShowTrap(m_Skin.TrapIdle);
+				}
 			}
 		}
 
@@ -216,7 +278,7 @@ namespace RESlimeConect.Game
 		}
 
 		//----------------------------------------------------
-		// ホバー中のマスを切り替える
+		// ホバー中のマスを切り替え、半透明プレビューを出し直す
 		//----------------------------------------------------
 		private void SetHover(int index)
 		{
@@ -226,49 +288,15 @@ namespace RESlimeConect.Game
 			}
 			if (m_HoverIndex != NoCell)
 			{
-				m_Cells[m_HoverIndex].SetHighlight(false, Color.clear);
+				m_Cells[m_HoverIndex].HidePreview();
 			}
 			m_HoverIndex = index;
-			if (m_HoverIndex != NoCell)
-			{
-				m_Cells[m_HoverIndex].SetHighlight(true, m_HoverColor);
-			}
-		}
 
-		//----------------------------------------------------
-		// マークに対応する画像を返す
-		//----------------------------------------------------
-		private Sprite GetSprite(EMark mark)
-		{
-			switch (mark)
+			// 既にトラップを表示しているマスには重ねない
+			if (m_HoverIndex != NoCell && m_HoverIndex != m_TrapPreviewIndex)
 			{
-				case EMark.Circle:
-					return m_CircleSprite;
-				case EMark.Cross:
-					return m_CrossSprite;
-				default:
-					return null;
+				m_Cells[m_HoverIndex].ShowPreview(m_HoverPreviewSprite, m_Skin.HoverPreviewColor, m_IsHoverPreviewTrap);
 			}
-		}
-
-		//----------------------------------------------------
-		// マークに対応する色を返す
-		//----------------------------------------------------
-		private Color GetColor(EMark mark)
-		{
-			return mark == EMark.Circle ? m_CircleColor : m_CrossColor;
-		}
-
-		//----------------------------------------------------
-		// トラップの持ち主に応じた表示色を返す
-		//----------------------------------------------------
-		private Color GetTrapColor(bool hasPlayer1, bool hasPlayer2)
-		{
-			if (hasPlayer1 && hasPlayer2)
-			{
-				return m_BothTrapColor;
-			}
-			return hasPlayer1 ? m_Player1TrapColor : m_Player2TrapColor;
 		}
 	}
 }
