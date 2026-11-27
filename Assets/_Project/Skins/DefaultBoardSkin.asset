@@ -35,6 +35,10 @@ MonoBehaviour:
       - {fileID: -674651553, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
       - {fileID: -757160462, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
       - {fileID: -1888528600, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
+      m_FrameRate: 10
+      m_Loop: 1
+    m_Surprise:
+      m_Frames:
       - {fileID: 889745452, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
       - {fileID: 1894843370, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
       - {fileID: 905769191, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
@@ -43,7 +47,7 @@ MonoBehaviour:
       - {fileID: -2071101583, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
       - {fileID: 1007290745, guid: f2e21e14b0f60b74cbd75b7cc1de8480, type: 3}
       m_FrameRate: 12
-      m_Loop: 1
+      m_Loop: 0
     m_Win:
       m_Frames:
       - {fileID: 445684958, guid: 2791a4f96950b244ba7795820afc6dae, type: 3}
@@ -76,7 +80,7 @@ MonoBehaviour:
       - {fileID: -1761761647, guid: 3373074ec8b03594a8cbde4a5a3a3080, type: 3}
       - {fileID: 1001506077, guid: 3373074ec8b03594a8cbde4a5a3a3080, type: 3}
       - {fileID: -1382743624, guid: 3373074ec8b03594a8cbde4a5a3a3080, type: 3}
-      m_FrameRate: 20
+      m_FrameRate: 16
       m_Loop: 0
   m_CrossSlime:
     m_Place:
@@ -99,6 +103,10 @@ MonoBehaviour:
       - {fileID: 1487712503, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
       - {fileID: -97527372, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
       - {fileID: 14515129, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
+      m_FrameRate: 10
+      m_Loop: 1
+    m_Surprise:
+      m_Frames:
       - {fileID: 1735477334, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
       - {fileID: 223407861, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
       - {fileID: 1060900430, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
@@ -107,7 +115,7 @@ MonoBehaviour:
       - {fileID: -1552239893, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
       - {fileID: 355595298, guid: 35599be1416ef504f8198bd906cab4b5, type: 3}
       m_FrameRate: 12
-      m_Loop: 1
+      m_Loop: 0
     m_Win:
       m_Frames:
       - {fileID: -742101430, guid: 8ef946fe812bb75479bc74624692f427, type: 3}
@@ -140,7 +148,7 @@ MonoBehaviour:
       - {fileID: -1652877268, guid: 6d76447fbdb9009428e8aac9406439dc, type: 3}
       - {fileID: -539542113, guid: 6d76447fbdb9009428e8aac9406439dc, type: 3}
       - {fileID: 1309263452, guid: 6d76447fbdb9009428e8aac9406439dc, type: 3}
-      m_FrameRate: 20
+      m_FrameRate: 16
       m_Loop: 0
   m_TrapIdle:
     m_Frames:

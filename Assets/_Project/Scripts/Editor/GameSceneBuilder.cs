@@ -56,7 +56,8 @@ namespace RESlimeConect.EditorTools
 		private const float TrapScale = 2.5f;
 		private static readonly Vector3 SlimeLocalPosition = new Vector3(0f, 0.12f, 0f);
 		private const float SlimeScale = 0.7f;
-		private const int SlimePlaceFrameCount = 7;
+		// スライムの Idle シートは 1 段 7 コマで、上から 置いたとき・通常・驚き
+		private const int SlimeSheetRowLength = 7;
 		private static readonly Vector3 ExclamationLocalPosition = new Vector3(0f, 0.75f, 0f);
 		private const float ExclamationScale = 0.7f;
 		private const int BackgroundOrder = -100;
@@ -144,24 +145,39 @@ namespace RESlimeConect.EditorTools
 
 		//----------------------------------------------------
 		// スライム1色分のアニメーションを、空欄のものだけ割り当てる
-		// Idle シートは上の段（0〜6）が置いたとき、それ以降が通常状態のループ
+		// Idle シートは 1 段目が置いたとき、2 段目が通常状態のループ、3 段目が驚き
 		//----------------------------------------------------
 		private static void AssignSlimeIfEmpty(SerializedObject serialized, string path, string directory)
 		{
 			Sprite[] idleSheet = SpriteImportSetup.LoadSheet(directory + "/Idle.png");
-			Sprite[] placeFrames = idleSheet.Take(SlimePlaceFrameCount).ToArray();
-			Sprite[] idleFrames = idleSheet.Skip(SlimePlaceFrameCount).ToArray();
+			Sprite[] placeFrames = idleSheet.Take(SlimeSheetRowLength).ToArray();
+			Sprite[] idleFrames = idleSheet.Skip(SlimeSheetRowLength).Take(SlimeSheetRowLength).ToArray();
+			Sprite[] surpriseFrames = idleSheet.Skip(SlimeSheetRowLength * 2).ToArray();
 
-			// 置いたときのアニメーションを分ける前のスキンは Idle にシート全コマが入っているので、ループ部分だけに直す
-			if (IsSameFrames(serialized.FindProperty(path + ".m_Idle.m_Frames"), idleSheet))
+			// 以前の既定（シート全コマ、または 2〜3 段目）のままなら、再生速度などは残してコマだけ 2 段目に差し替える
+			SerializedProperty idleProperty = serialized.FindProperty(path + ".m_Idle.m_Frames");
+			if (IsSameFrames(idleProperty, idleSheet) || IsSameFrames(idleProperty, idleSheet.Skip(SlimeSheetRowLength).ToArray()))
 			{
-				serialized.FindProperty(path + ".m_Idle.m_Frames").arraySize = 0;
+				SetFrames(idleProperty, idleFrames);
 			}
 
 			AssignClipIfEmpty(serialized, path + ".m_Place", placeFrames, 12f, false);
 			AssignClipIfEmpty(serialized, path + ".m_Idle", idleFrames, 12f, true);
+			AssignClipIfEmpty(serialized, path + ".m_Surprise", surpriseFrames, 12f, false);
 			AssignClipIfEmpty(serialized, path + ".m_Win", SpriteImportSetup.LoadSheet(directory + "/Win.png"), 12f, true);
 			AssignClipIfEmpty(serialized, path + ".m_Change", SpriteImportSetup.LoadSheet(directory + "/Change.png"), 20f, false);
+		}
+
+		//----------------------------------------------------
+		// コマ配列を指定のスプライト列で置き換える
+		//----------------------------------------------------
+		private static void SetFrames(SerializedProperty framesProperty, Sprite[] sprites)
+		{
+			framesProperty.arraySize = sprites.Length;
+			for (int i = 0; i < sprites.Length; i++)
+			{
+				framesProperty.GetArrayElementAtIndex(i).objectReferenceValue = sprites[i];
+			}
 		}
 
 		//----------------------------------------------------
@@ -194,11 +210,7 @@ namespace RESlimeConect.EditorTools
 				return;
 			}
 
-			framesProperty.arraySize = frames.Length;
-			for (int i = 0; i < frames.Length; i++)
-			{
-				framesProperty.GetArrayElementAtIndex(i).objectReferenceValue = frames[i];
-			}
+			SetFrames(framesProperty, frames);
 			serialized.FindProperty(path + ".m_FrameRate").floatValue = frameRate;
 			serialized.FindProperty(path + ".m_Loop").boolValue = loop;
 		}

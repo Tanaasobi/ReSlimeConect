@@ -41,11 +41,15 @@ namespace RESlimeConect.Game
 		}
 
 		//----------------------------------------------------
-		// スライムの1回きりのアニメーション（変化）を再生して終わるまで待つ
+		// スライムの1回きりのアニメーションを再生して終わるまで待つ（コマが無ければ今の表示のまま何もしない）
 		//----------------------------------------------------
-		public Awaitable PlaySlimeAsync(SpriteAnimationClip clip, CancellationToken token)
+		public async Awaitable PlaySlimeAsync(SpriteAnimationClip clip, CancellationToken token)
 		{
-			return m_SlimeAnimator.PlayAsync(clip, token);
+			if (clip == null || !clip.IsValid)
+			{
+				return;
+			}
+			await m_SlimeAnimator.PlayAsync(clip, token);
 		}
 
 		//----------------------------------------------------

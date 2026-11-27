@@ -209,14 +209,18 @@ namespace RESlimeConect.Game
 				return;
 			}
 
-			await Awaitable.WaitForSecondsAsync(m_TrapRevealDelay, token);
-			await cell.PlayExclamationAsync(m_Skin.Exclamation, token);
-
-			// 踏んだトラップの数だけ変化させる（2つなら元に戻る）
+			// 踏んだトラップの数だけ「ビックリマークと驚き、変化」を繰り返す（2つなら元に戻る）
 			EMark mark = result.PlacedMark;
 			for (int i = 0; i < result.TrapCount; i++)
 			{
-				await cell.PlaySlimeAsync(m_Skin.GetSlime(mark).Change, token);
+				await Awaitable.WaitForSecondsAsync(m_TrapRevealDelay, token);
+
+				SlimeAnimationSet current = m_Skin.GetSlime(mark);
+				Awaitable surprise = cell.PlaySlimeAsync(current.Surprise, token);
+				await cell.PlayExclamationAsync(m_Skin.Exclamation, token);
+				await surprise;
+
+				await cell.PlaySlimeAsync(current.Change, token);
 				mark = GameRuleUtility.FlipMark(mark);
 				cell.PlaySlime(m_Skin.GetSlime(mark).Idle);
 			}
