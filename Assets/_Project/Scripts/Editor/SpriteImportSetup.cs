@@ -59,6 +59,8 @@ namespace RESlimeConect.EditorTools
 			new SheetDefinition(SpriteRoot + "/Placeholder/Trap/Trap_Idle.png", 5, 2, 10, new Vector2(16f / 46f, 0.5f)),
 			new SheetDefinition(SpriteRoot + "/Placeholder/Trap/Trap_Play.png", 5, 2, 9),
 			new SheetDefinition(SpriteRoot + "/Effect/Exclamation.png", 5, 3, 15),
+			new SheetDefinition(SpriteRoot + "/Effect/VS.png", 1, 2, 2),
+			new SheetDefinition(SpriteRoot + "/Effect/Wifi.png", 7, 1, 7),
 			new SheetDefinition(SpriteRoot + "/UI/Text/Number.png", 14, 1, 14),
 		};
 

@@ -175,7 +175,7 @@ MonoBehaviour:
     - {fileID: -155629964, guid: 7ff21d85f76afa2409e4d37e89a35b6f, type: 3}
     - {fileID: -1860444614, guid: 7ff21d85f76afa2409e4d37e89a35b6f, type: 3}
     - {fileID: -1486135508, guid: 7ff21d85f76afa2409e4d37e89a35b6f, type: 3}
-    m_FrameRate: 15
+    m_FrameRate: 10
     m_Loop: 0
   m_Exclamation:
     m_Frames:

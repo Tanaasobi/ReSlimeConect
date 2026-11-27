@@ -3,7 +3,6 @@
 // ゲームシーン・マスの Prefab・スキンをエディタ API で自動生成するメニュー
 // シーンの YAML を手で書かずに、オブジェクト構成と参照の結線を再現するためのもの
 // シーンは毎回作り直す。スキンは空欄だけを埋め、Prefab は構成が古いときだけ作り直す
-// 画面は 1280x720・1px = 0.01 ユニット（Pixels Per Unit 100）を基準に配置する
 //====================================================
 using System.IO;
 using System.Linq;
@@ -11,17 +10,15 @@ using RESlimeConect.Game;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static RESlimeConect.EditorTools.SceneBuilderUtility;
 
 namespace RESlimeConect.EditorTools
 {
 	public static class GameSceneBuilder
 	{
 		// 出力先
-		private const string SceneDirectory = "Assets/_Project/Scenes";
 		private const string ScenePath = SceneDirectory + "/GameScene.unity";
 		private const string SkinDirectory = "Assets/_Project/Skins";
 		private const string SkinPath = SkinDirectory + "/DefaultBoardSkin.asset";
@@ -40,11 +37,8 @@ namespace RESlimeConect.EditorTools
 		private const string NumberPath = SpriteRoot + "/UI/Text/Number.png";
 		private const string PlayerFramePath = SpriteRoot + "/UI/Frame/Player.png";
 		private const string TimeFramePath = SpriteRoot + "/UI/Frame/Time.png";
-		private const string ButtonDirectory = SpriteRoot + "/UI/Button";
 
 		// 画面・盤面のレイアウト（ワールド座標はユニット、UI はピクセル）
-		private const float CameraSize = 3.6f;
-		private static readonly Vector2 ReferenceResolution = new Vector2(1280f, 720f);
 		private static readonly Vector3 BoardPosition = new Vector3(-2.8f, 0f, 0f);
 		private static readonly Vector2 GridOffset = new Vector2(0.02f, 0.067f);
 		private const float CellSpacing = 1.745f;
@@ -96,7 +90,7 @@ namespace RESlimeConect.EditorTools
 
 			Directory.CreateDirectory(SceneDirectory);
 			EditorSceneManager.SaveScene(scene, ScenePath);
-			AddSceneToBuildSettings(ScenePath);
+			AddSceneToBuildSettings(ScenePath, false);
 			Debug.Log($"[GameSceneBuilder] {ScenePath} を生成しました");
 		}
 
@@ -107,7 +101,7 @@ namespace RESlimeConect.EditorTools
 		//----------------------------------------------------
 		// スキンアセットを読み込み（無ければ作り）、空欄だけ既定の素材で埋める
 		//----------------------------------------------------
-		private static BoardSkin LoadOrCreateSkin()
+		public static BoardSkin LoadOrCreateSkin()
 		{
 			BoardSkin skin = AssetDatabase.LoadAssetAtPath<BoardSkin>(SkinPath);
 			if (skin == null)
@@ -227,19 +221,6 @@ namespace RESlimeConect.EditorTools
 			}
 		}
 
-		//----------------------------------------------------
-		// 1枚画像のスプライトを読み込む
-		//----------------------------------------------------
-		private static Sprite LoadSprite(string path)
-		{
-			Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-			if (sprite == null)
-			{
-				Debug.LogWarning($"[GameSceneBuilder] スプライトが見つかりません: {path}");
-			}
-			return sprite;
-		}
-
 		//====================================================
 		// マスの Prefab
 		//====================================================
@@ -333,23 +314,6 @@ namespace RESlimeConect.EditorTools
 		//====================================================
 
 		//----------------------------------------------------
-		// 1280x720 で 1px = 0.01 ユニットになる正投影カメラを作る
-		//----------------------------------------------------
-		private static Camera CreateCamera()
-		{
-			GameObject cameraObject = new GameObject("Main Camera");
-			cameraObject.tag = "MainCamera";
-			cameraObject.transform.position = new Vector3(0f, 0f, -10f);
-
-			Camera camera = cameraObject.AddComponent<Camera>();
-			camera.orthographic = true;
-			camera.orthographicSize = CameraSize;
-			camera.clearFlags = CameraClearFlags.SolidColor;
-			camera.backgroundColor = Color.black;
-			return camera;
-		}
-
-		//----------------------------------------------------
 		// 背景・盤面タイル・マスの Prefab インスタンス 9 個を作り BoardView に結線する
 		//----------------------------------------------------
 		private static BoardView CreateBoard(BoardSkin skin, GameObject cellPrefab, Camera camera)
@@ -400,29 +364,19 @@ namespace RESlimeConect.EditorTools
 		//----------------------------------------------------
 		private static GameUIView CreateUI()
 		{
-			GameObject canvasObject = new GameObject("Canvas");
-			Canvas canvas = canvasObject.AddComponent<Canvas>();
-			canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-			CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
-			scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-			scaler.referenceResolution = ReferenceResolution;
-			scaler.matchWidthOrHeight = 0.5f;
-			canvasObject.AddComponent<GraphicRaycaster>();
+			GameObject canvasObject = CreateCanvas().gameObject;
 			Transform root = canvasObject.transform;
 
 			// 手番プレイヤー枠（中にスライム）
 			Image playerFrame = CreateImage("PlayerFrame", root, LoadSprite(PlayerFramePath), new Vector2(RightColumnX, 210f), new Vector2(300f, 240f));
-			Image playerSlimeImage = CreateImage("Slime", playerFrame.transform, null, new Vector2(0f, -10f), new Vector2(190f, 190f));
-			playerSlimeImage.enabled = false;
-			SpriteAnimator playerSlimeAnimator = playerSlimeImage.gameObject.AddComponent<SpriteAnimator>();
-			SetReference(playerSlimeAnimator, "m_Image", playerSlimeImage);
+			SpriteAnimator playerSlimeAnimator = CreateAnimatedImage("Slime", playerFrame.transform, new Vector2(0f, -10f), new Vector2(190f, 190f));
 
 			// 残り時間枠
 			Image timeFrame = CreateImage("TimeFrame", root, LoadSprite(TimeFramePath), new Vector2(RightColumnX, -5f), new Vector2(320f, 128f));
 			GameObject timeTextObject = CreateUIObject("TimeText", timeFrame.transform);
 			SetRect(timeTextObject.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(280f, 100f));
 			SpriteNumberText timeText = timeTextObject.AddComponent<SpriteNumberText>();
-			SetSpriteArray(timeText, "m_Sprites", SpriteImportSetup.LoadSheet(NumberPath));
+			SetReferenceArray(timeText, "m_Sprites", SpriteImportSetup.LoadSheet(NumberPath));
 
 			// トラップ設置ボタン（右下に縦並び）
 			GameObject trapControlRoot = CreateUIObject("TrapControls", root);
@@ -478,102 +432,6 @@ namespace RESlimeConect.EditorTools
 		}
 
 		//----------------------------------------------------
-		// RectTransform 付きの空 UI オブジェクトを作る
-		//----------------------------------------------------
-		private static GameObject CreateUIObject(string name, Transform parent)
-		{
-			GameObject uiObject = new GameObject(name, typeof(RectTransform));
-			uiObject.transform.SetParent(parent, false);
-			return uiObject;
-		}
-
-		//----------------------------------------------------
-		// 中央基準で配置した Image を作る
-		//----------------------------------------------------
-		private static Image CreateImage(string name, Transform parent, Sprite sprite, Vector2 position, Vector2 size)
-		{
-			GameObject imageObject = CreateUIObject(name, parent);
-			SetRect(imageObject.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), position, size);
-			Image image = imageObject.AddComponent<Image>();
-			image.sprite = sprite;
-			image.preserveAspect = true;
-			image.raycastTarget = false;
-			return image;
-		}
-
-		//----------------------------------------------------
-		// 組み込みフォントを使ったテキストを作る
-		//----------------------------------------------------
-		private static Text CreateText(string name, Transform parent, string content, int fontSize)
-		{
-			GameObject textObject = CreateUIObject(name, parent);
-			Text text = textObject.AddComponent<Text>();
-			text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-			text.text = content;
-			text.fontSize = fontSize;
-			text.alignment = TextAnchor.MiddleCenter;
-			text.color = Color.white;
-			text.raycastTarget = false;
-			text.horizontalOverflow = HorizontalWrapMode.Wrap;
-			text.verticalOverflow = VerticalWrapMode.Overflow;
-			return text;
-		}
-
-		//----------------------------------------------------
-		// 通常・カーソルを合わせた状態・押している状態の画像を切り替えるボタンを作る
-		//----------------------------------------------------
-		private static Button CreateButton(string name, Transform parent, string idleName, string floatName, string pushName, Vector2 position, Vector2 size)
-		{
-			Image image = CreateImage(name, parent, LoadSprite($"{ButtonDirectory}/{idleName}.png"), position, size);
-			image.raycastTarget = true;
-
-			Button button = image.gameObject.AddComponent<Button>();
-			button.transition = Selectable.Transition.SpriteSwap;
-			button.spriteState = new SpriteState
-			{
-				highlightedSprite = LoadSprite($"{ButtonDirectory}/{floatName}.png"),
-				pressedSprite = LoadSprite($"{ButtonDirectory}/{pushName}.png"),
-			};
-
-			// クリック後に「選択中」の見た目が残らないよう、ナビゲーションは使わない
-			button.navigation = new Navigation { mode = Navigation.Mode.None };
-			return button;
-		}
-
-		//----------------------------------------------------
-		// 指定アンカー基準で位置とサイズを設定する
-		//----------------------------------------------------
-		private static void SetRect(RectTransform rect, Vector2 anchor, Vector2 position, Vector2 size)
-		{
-			rect.anchorMin = anchor;
-			rect.anchorMax = anchor;
-			rect.pivot = new Vector2(0.5f, 0.5f);
-			rect.anchoredPosition = position;
-			rect.sizeDelta = size;
-		}
-
-		//----------------------------------------------------
-		// 親いっぱいに広げる
-		//----------------------------------------------------
-		private static void StretchFull(RectTransform rect)
-		{
-			rect.anchorMin = Vector2.zero;
-			rect.anchorMax = Vector2.one;
-			rect.offsetMin = Vector2.zero;
-			rect.offsetMax = Vector2.zero;
-		}
-
-		//----------------------------------------------------
-		// Input System 用の EventSystem を作る
-		//----------------------------------------------------
-		private static void CreateEventSystem()
-		{
-			GameObject eventSystemObject = new GameObject("EventSystem");
-			eventSystemObject.AddComponent<EventSystem>();
-			eventSystemObject.AddComponent<InputSystemUIInputModule>();
-		}
-
-		//----------------------------------------------------
 		// GameManager を作り盤面と UI を結線する
 		//----------------------------------------------------
 		private static void CreateGameManager(BoardView boardView, GameUIView gameUIView)
@@ -584,48 +442,6 @@ namespace RESlimeConect.EditorTools
 			serialized.FindProperty("m_BoardView").objectReferenceValue = boardView;
 			serialized.FindProperty("m_GameUIView").objectReferenceValue = gameUIView;
 			serialized.ApplyModifiedPropertiesWithoutUndo();
-		}
-
-		//====================================================
-		// 共通処理
-		//====================================================
-
-		//----------------------------------------------------
-		// コンポーネントのオブジェクト参照フィールドを設定する
-		//----------------------------------------------------
-		private static void SetReference(Object target, string propertyName, Object value)
-		{
-			SerializedObject serialized = new SerializedObject(target);
-			serialized.FindProperty(propertyName).objectReferenceValue = value;
-			serialized.ApplyModifiedPropertiesWithoutUndo();
-		}
-
-		//----------------------------------------------------
-		// コンポーネントのスプライト配列フィールドを設定する
-		//----------------------------------------------------
-		private static void SetSpriteArray(Object target, string propertyName, Sprite[] sprites)
-		{
-			SerializedObject serialized = new SerializedObject(target);
-			SerializedProperty property = serialized.FindProperty(propertyName);
-			property.arraySize = sprites.Length;
-			for (int i = 0; i < sprites.Length; i++)
-			{
-				property.GetArrayElementAtIndex(i).objectReferenceValue = sprites[i];
-			}
-			serialized.ApplyModifiedPropertiesWithoutUndo();
-		}
-
-		//----------------------------------------------------
-		// シーンをビルド設定の先頭に登録する
-		//----------------------------------------------------
-		private static void AddSceneToBuildSettings(string path)
-		{
-			EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
-			if (scenes.Any(scene => scene.path == path))
-			{
-				return;
-			}
-			EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(path, true) }.Concat(scenes).ToArray();
 		}
 	}
 }
